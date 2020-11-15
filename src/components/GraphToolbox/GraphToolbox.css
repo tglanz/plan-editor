@@ -1,0 +1,10 @@
+.GraphToolbox {
+}
+
+.GraphToolbox .tools {
+    padding: 1em;
+}
+
+.GraphToolbox .tools .node-tool {
+    margin: 1em;
+}

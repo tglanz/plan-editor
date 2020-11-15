@@ -1,29 +1,42 @@
 import React from 'react';
 import NodeTypes, {NodeType} from './nodeTypes';
-import EdgeTypes, {EdgeType} from './edgeTypes';
+import EdgeTypes, { EdgeType } from './edgeTypes';
+
 import './Graph.css';
 
 import {
     GraphView,
     IEdge,
-    INode,
     IGraphInput,
+    INode,
 } from 'react-digraph';
+
+import * as graphServices from '../../services/graph';
 
 import {connect} from 'react-redux';
 import { bindActionCreators } from 'redux';
 
-import {actionCreators as graphActionCreators} from '../../redux/graph';
+import {actionCreators as uiActionCreators} from '../../redux/uiDuck';
+import {actionCreators as graphActionCreators} from '../../redux/graphDuck';
 
 interface IGraphState {
-    selected: INode | null
 };
 
 export interface IGraphProps {
-    graph: IGraphInput,
+    nodes: INode[],
+    edges: IEdge[],
+
+    selectedGraphElement: INode | null,
+    selectedNodeType: NodeType,
+    selectedEdgeType: EdgeType,
+
+    setGraph: (graph: IGraphInput) => void;
     createNode: (node: INode) => void;
+    setNodes: (nodes: INode[]) => void;
     updateNode: (node: INode) => void;
+    selectGraphElement: (element: INode | IEdge | null) => void;
     createEdge: (edge: IEdge) => void;
+    setEdges: (edges: IEdge[]) => void;
 };
 
 class Graph extends React.Component<IGraphProps, IGraphState> {
@@ -32,107 +45,112 @@ class Graph extends React.Component<IGraphProps, IGraphState> {
 
     constructor(props: IGraphProps) {
         super(props);
-        this.state = {
-            selected: null
-        };
         this.graphViewRef = React.createRef()
     }
 
     onBackgroundClick = (x: number, y: number, event: any) => {
-        console.debug({ where: "onBackgroundClick", x, y, event });
     }
 
     onCopySelected = () => {
-        console.debug({ where: "onCopySelected" });
     }
 
     onCreateEdge = (sourceNode: INode, targetNode: INode) => {
-        console.debug({ where: "onCreateEdge", sourceNode, targetNode });
         this.props.createEdge({
             source: sourceNode.id,
-            target: targetNode.id
+            target: targetNode.id,
+            type: this.props.selectedEdgeType
         });
     }
 
     onCreateNode = (x: number, y: number, event: any) => {
-        console.debug({ where: "onCreateNode", x, y, event });
         this.props.createNode({
-            type: NodeType.Circle,
-            title: "some title",
+            type: this.props.selectedNodeType,
+            title: "[[title]]",
             x,
             y
         });
     }
 
     onDeleteEdge = (selectedEdge: IEdge, edges: IEdge[]) => {
-        console.debug({ where: "onDeleteEdge", selectedEdge, edges });
+        this.props.setEdges(edges.filter(edge => !graphServices.areEdgesTheSame(selectedEdge, edge)));
     }
 
     onDeleteNode = (selected: any, nodeId: string, nodes: any[]) => {
-        console.debug({ where: "onDeleteNode", selected, nodeId, nodes });
+        
+        if (this.props.edges.find(edge => graphServices.isEdgeConnected(edge, nodeId))) {
+            // TODO: handle this; somehow notify the user
+            return;
+        }
+
+        this.props.setNodes(nodes.filter(node => node.id !== nodeId));
     }
 
     onPasteSelected = (selectedNode: INode, xyCoords?: { x: number, y: number }) => {
-        console.debug({ where: "onPasteSelected", selectedNode, xyCoords });
     }
 
     onSelectEdge = (selectedEdge: IEdge) => {
-        console.debug({ where: "onSelectEdge", selectedEdge });
+        this.props.selectGraphElement(selectedEdge);
     }
 
-    onSelectNode = (node: INode | null, event: any) => {
-        console.debug({ where: "onSelectNode", node, event });
-        this.setState({ selected: node });
+    onSelectNode = (selectedNode: INode | null, event: any) => {
+        this.props.selectGraphElement(selectedNode);
     }
 
     onSwapEdge = (sourceNode: INode, targetNode: INode, edge: IEdge) => {
-        console.debug({ where: "onSwapEdge", sourceNode, targetNode, edge });
     }
 
     onUndo = () => {
-        console.debug({ where: "onUndo" });
     }
 
     onUpdateNode = (node: INode) => {
-        console.debug({ where: "onUpdateNode", node });
         this.props.updateNode(node);
     }
 
     render = () => {
-        const nodes = this.props.graph.nodes;
-        const edges = this.props.graph.edges;
-        const selected = this.state.selected;
+        const {nodes, edges, selectedGraphElement} = this.props;
+
+        const Untyped = GraphView as any;
 
         return (
-            <div className='Graph'>
-                <GraphView ref={element => this.graphViewRef = element}
-                    nodeKey={"id"}
-                    nodes={nodes}
-                    edges={edges}
-                    selected={selected}
-                    nodeTypes={NodeTypes}
-                    nodeSubtypes={{}}
-                    edgeTypes={EdgeTypes}
-                    onSelectNode={this.onSelectNode}
-                    onCreateNode={this.onCreateNode}
-                    onUpdateNode={this.onUpdateNode}
-                    onDeleteNode={this.onDeleteNode}
-                    onSelectEdge={this.onSelectEdge}
-                    onCreateEdge={this.onCreateEdge}
-                    onSwapEdge={this.onSwapEdge}
-                    onDeleteEdge={this.onDeleteEdge}
-                    />
-            </div>
+            <Untyped
+                ref={(element: any) => this.graphViewRef = element}
+                disableBackspace={true}
+                nodeKey={"id"}
+                nodes={nodes}
+                edges={edges}
+                selected={selectedGraphElement}
+                nodeTypes={NodeTypes}
+                nodeSubtypes={{}}
+                edgeTypes={EdgeTypes}
+                onSelectNode={this.onSelectNode}
+                onCreateNode={this.onCreateNode}
+                onUpdateNode={this.onUpdateNode}
+                onDeleteNode={this.onDeleteNode}
+                onSelectEdge={this.onSelectEdge}
+                onCreateEdge={this.onCreateEdge}
+                onSwapEdge={this.onSwapEdge}
+                onDeleteEdge={this.onDeleteEdge}
+                />
         );
     }
 }
 
 const mapStateToProps = (state: any) => ({
-    graph: state.graph
+    nodes: state.graph.nodes,
+    edges: state.graph.edges,
+    selectedGraphElement: state.ui.selectedGraphElement,
+    selectedNodeType: state.ui.selectedNodeType,
+    selectedEdgeType: state.ui.selectedEdgeType,
 });
 
 const mapDispatchToProps = (dispatch: any) => bindActionCreators({
-    ...graphActionCreators
+    selectGraphElement: uiActionCreators.selectGraphElement,
+    setGraph: graphActionCreators.setGraph,
+    createNode: graphActionCreators.createNode,
+    setNodes: graphActionCreators.setNodes,
+    updateNode: graphActionCreators.updateNode,
+    createEdge: graphActionCreators.createEdge,
+    setEdges: graphActionCreators.setEdges,
 }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(Graph);

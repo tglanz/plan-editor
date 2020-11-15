@@ -11,7 +11,7 @@ import {
 
 import { createBrowserHistory } from 'history';
 
-import Graph from '../Graph/Graph';
+import GraphPage from '../GraphPage/GraphPage';
 
 const browserHistory = createBrowserHistory();
 
@@ -28,7 +28,7 @@ function App() {
           </header>
 
           <div className="content">
-            <Route exact={true} path="/graph" component={Graph} />
+            <Route exact={true} path="/graph" component={GraphPage} />
             <Switch>
               <Redirect from="/" to="/graph" />
             </Switch>

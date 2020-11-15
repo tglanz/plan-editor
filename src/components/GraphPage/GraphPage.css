@@ -1,0 +1,22 @@
+.GraphPage {
+    height: 100%;    
+    display: grid;
+
+    grid-template-areas:
+        "toolbox graph description";
+    grid-template-columns: 1fr 5fr 1fr;
+}
+
+.GraphPage .toolbox-container {
+    grid-area: toolbox;
+}
+
+.GraphPage .graph-container {
+    grid-area: graph;
+    border: 1px solid black;
+    margin: 4px;
+}
+
+.GraphPage .description-container {
+    grid-area: description;
+}
